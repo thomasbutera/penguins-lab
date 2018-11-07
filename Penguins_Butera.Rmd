@@ -46,3 +46,70 @@ penguins2 <- penguins %>%
   filter(Sex == "FEMALE")
 ```
 
+Exploratory graphs and Levene's test for equal variances
+
+```{r}
+
+hists <- ggplot(penguins2, aes(x = `Flipper Length (mm)`)) +
+  geom_histogram(aes(fill = common_name, scale = "free")) +
+  facet_wrap(~ common_name, scale = "free")
+
+hists
+
+qqplot <- ggplot(penguins2, aes(sample = `Flipper Length (mm)`)) +
+  geom_qq(aes(color = common_name)) +
+  facet_wrap(~common_name, scale = "free")
+
+qqplot
+
+```
+
+
+Evaluate variances and perform a Levene's Test for equal variances
+
+```{r}
+# if the largest sample variances is < 4x greater than the smallest smaple variance, then these are "close enough" to consider variacnes equal
+
+variances <- penguins2 %>% 
+  group_by(common_name) %>% 
+  summarize(
+    variance = var(`Flipper Length (mm)`)
+  )
+
+variances # variance units will be in mm^2... the largeset variance (33.1) is definitely not more than 4x greater than the smallest variance (15.2)
+
+#Levene's Test
+# leveneTest function in the "car" packages
+
+levene_penguin <- leveneTest(`Flipper Length (mm)` ~ common_name, data = penguins2)
+
+levene_penguin
+
+# H0: No difference in variances (variances are equal)
+# HA: Variances are NOT equal
+
+# There is no significant difference in variances across species
+```
+
+One-way ANOVA for penguin flipper lengths by species (common_name)
+
+```{r}
+
+# H0: The means across all groups are equal
+# HA: At least two group mean differ significantly
+
+penguins_aov <- aov(`Flipper Length (mm)` ~ common_name, data = penguins2)
+summary(penguins_aov)
+
+# Post-hoc testing by Tukey's HSD
+
+# H0: No significant difference in pairwise means
+# HA: There IS a significant difference in pairwise means
+
+penguin_ph <- TukeyHSD(penguins_aov)
+penguin_ph
+
+# All p-values for each species is very low, meaning there are differences among all of them
+```
+
+Mean flipper lenghts of female penguins differed significantly for all species studied (one-way anova, F(df) = statistic, p <0.001, $\alpha$ = 0.05 with post-hoc Tukey's HSD $\alpha$ = 0.05).
